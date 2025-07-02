@@ -14,19 +14,29 @@ let mainWindow = null;
 const PORT = 8080;
 
 function createTray() {
-  // On macOS, use a template PNG for best menu bar appearance (black & transparent)
+  console.log('createTray called');
+  const isPackaged = app.isPackaged;
   let iconPath;
   if (process.platform === 'darwin') {
-    // Use a template PNG if you have one, fallback to icns
-    iconPath = path.join(__dirname, 'assets', 'iconTemplate.png'); // <-- Add this file for best results
-    // If you don't have a template PNG, fallback to icns
+    if (isPackaged) {
+      iconPath = path.join(process.resourcesPath, 'assets', 'iconTemplate.png');
+    } else {
+      iconPath = path.join(__dirname, 'assets', 'iconTemplate.png');
+    }
+    // Fallback to icns if template PNG is missing
     if (!require('fs').existsSync(iconPath)) {
-      iconPath = path.join(__dirname, 'assets', 'icon.icns');
+      if (isPackaged) {
+        iconPath = path.join(process.resourcesPath, 'assets', 'icon.icns');
+      } else {
+        iconPath = path.join(__dirname, 'assets', 'icon.icns');
+      }
     }
   } else {
     iconPath = path.join(__dirname, 'assets', 'icon.ico');
   }
+  console.log('Tray icon path:', iconPath);
   tray = new Tray(iconPath);
+  console.log('Tray created with icon:', iconPath);
   
   const contextMenu = Menu.buildFromTemplate([
     { label: 'Open InstaLabel', click: () => openUI() },
@@ -61,6 +71,7 @@ function openUI() {
 }
 
 app.whenReady().then(() => {
+  console.log('app.whenReady called');
   // Enable auto-launch on startup (macOS and Windows)
   app.setLoginItemSettings({ openAtLogin: true });
 

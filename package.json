@@ -27,7 +27,10 @@
       "extendInfo": {
         "LSUIElement": true
       }
-    }
+    },
+    "asarUnpack": [
+      "assets/**"
+    ]
   },
   "dependencies": {
     "express": "^4.x",
