@@ -1,0 +1,45 @@
+{
+  "name": "instalabel",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "postinstall": "electron-builder install-app-deps",
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac"
+  },
+  "build": {
+    "appId": "com.instalabel.app",
+    "productName": "InstaLabel",
+    "files": ["**/*"],
+    "directories": { "buildResources": "assets" },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": ["dmg", "pkg"],
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.productivity",
+      "darkModeSupport": true,
+      "extendInfo": {
+        "LSUIElement": true
+      }
+    }
+  },
+  "dependencies": {
+    "express": "^4.x",
+    "ws": "^8.x",
+    "@agsolutions-at/printers": "^0.0.6",
+    "usb-detection": "^4.x",
+    "pdf-lib": "^1.x",
+    "auto-launch": "^5.x"
+  },
+  "devDependencies": {
+    "electron": "^24.x",
+    "electron-builder": "^25.x",
+    "@electron/rebuild": "^3.x"
+  }
+} 
