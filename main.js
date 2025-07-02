@@ -1,4 +1,4 @@
-const { app, Tray, Menu, BrowserWindow } = require('electron');
+const { app, Tray, Menu, BrowserWindow, shell, nativeImage } = require('electron');
 const path = require('path');
 const express = require('express');
 const http = require('http');
@@ -8,6 +8,7 @@ const printers = require('@agsolutions-at/printers');
 const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 const spooler = require('./spooler');
 const BluetoothPrinterManager = require('./bluetooth-printer');
+const fs = require('fs');
 
 let tray = null;
 let mainWindow = null;
@@ -17,42 +18,43 @@ function createTray() {
   console.log('createTray called');
   const isPackaged = app.isPackaged;
   let iconPath;
+  let trayIcon;
   if (process.platform === 'darwin') {
     if (isPackaged) {
-      iconPath = path.join(process.resourcesPath, 'assets', 'iconTemplate.png');
+      iconPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'assets', 'iconTemplate.png');
     } else {
       iconPath = path.join(__dirname, 'assets', 'iconTemplate.png');
     }
-    // Fallback to icns if template PNG is missing
-    if (!require('fs').existsSync(iconPath)) {
-      if (isPackaged) {
-        iconPath = path.join(process.resourcesPath, 'assets', 'icon.icns');
-      } else {
-        iconPath = path.join(__dirname, 'assets', 'icon.icns');
-      }
+    if (!fs.existsSync(iconPath)) {
+      // Fallback: 1x1 transparent PNG (base64)
+      trayIcon = nativeImage.createFromDataURL(
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII='
+      );
+      console.log('Tray created with fallback empty icon');
+    } else {
+      trayIcon = nativeImage.createFromPath(iconPath);
+      console.log('Tray created with icon:', iconPath);
     }
+    tray = new Tray(trayIcon);
   } else {
     iconPath = path.join(__dirname, 'assets', 'icon.ico');
+    tray = new Tray(iconPath);
+    console.log('Tray created with icon:', iconPath);
   }
-  console.log('Tray icon path:', iconPath);
-  tray = new Tray(iconPath);
-  console.log('Tray created with icon:', iconPath);
-  
+
   const contextMenu = Menu.buildFromTemplate([
-    { label: 'Open InstaLabel', click: () => openUI() },
+    {
+      label: 'Open Browser',
+      click: () => { shell.openExternal('http://localhost:8080'); }
+    },
     { type: 'separator' },
-    { label: 'Show Status', click: () => {/* Could show a status window or notification */} },
-    { type: 'separator' },
-    { label: 'Quit InstaLabel', click: () => app.quit() }
+    {
+      label: 'Quit',
+      click: () => app.quit()
+    }
   ]);
-  
-  tray.setToolTip('InstaLabel');
   tray.setContextMenu(contextMenu);
-  
-  // On macOS, ensure the tray icon is visible in the menu bar
-  if (process.platform === 'darwin') {
-    tray.setIgnoreDoubleClickEvents(true);
-  }
+  tray.setToolTip('InstaLabel');
 }
 
 function openUI() {

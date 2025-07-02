@@ -13,7 +13,14 @@
   "build": {
     "appId": "com.instalabel.app",
     "productName": "InstaLabel",
-    "files": ["**/*"],
+    "files": [
+      "assets/**/*",
+      "main.js",
+      "bluetooth-printer.js",
+      "spooler.js",
+      "ui/**/*",
+      "package.json"
+    ],
     "directories": { "buildResources": "assets" },
     "win": {
       "target": "nsis",
@@ -29,7 +36,7 @@
       }
     },
     "asarUnpack": [
-      "assets/**"
+      "assets/**/*"
     ]
   },
   "dependencies": {
