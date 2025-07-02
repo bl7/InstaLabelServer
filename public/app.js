@@ -164,4 +164,4 @@ setInterval(() => {
     console.log('Attempting to reconnect...');
     location.reload();
   }
-}, 5000); 
+}, 5000);

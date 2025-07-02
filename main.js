@@ -79,7 +79,7 @@ app.whenReady().then(() => {
 
   // Start Express and WebSocket server
   const expressApp = express();
-  expressApp.use(express.static(path.join(__dirname, 'ui')));
+  expressApp.use(express.static(path.join(__dirname, 'public')));
   const server = http.createServer(expressApp);
   const wss = new WebSocketServer({ server });
 
@@ -95,38 +95,64 @@ app.whenReady().then(() => {
   // Check printer status and notify UI
   function updateStatus() {
     const printerList = printers.getPrinters();
+    console.log('DEBUG: Detected printers:', printerList);
+
     const bluetoothPrinters = bluetoothManager.getDiscoveredPrinters();
     const connectedBluetoothPrinters = bluetoothManager.getConnectedPrinters();
+    
+    // Filter for Munbyn or thermal printers (USB)
     let connectedPrinters = 0;
     let munbynPrinter = null;
     
-    // Only count printers that are actually thermal/label printers
     printerList.forEach(p => {
-      if (p.name.includes('Munbyn') || p.name.toLowerCase().includes('thermal') || 
-          p.name.toLowerCase().includes('label') || p.name.toLowerCase().includes('printer')) {
+      if (p.name.includes('Munbyn') || p.name.toLowerCase().includes('thermal')) {
         connectedPrinters++;
         if (!munbynPrinter) munbynPrinter = p;
       }
     });
+    // Fallback: if no Munbyn/thermal printers found, count all printers
+    if (connectedPrinters === 0 && printerList.length > 0) {
+      connectedPrinters = printerList.length;
+    }
     
+    // Add Bluetooth printers to the count
     const totalConnectedPrinters = connectedPrinters + connectedBluetoothPrinters.length;
     const connected = totalConnectedPrinters > 0;
-    
-    // Only include relevant printers in the list
-    const relevantPrinters = printerList.filter(p => 
-      p.name.includes('Munbyn') || p.name.toLowerCase().includes('thermal') || 
-      p.name.toLowerCase().includes('label') || p.name.toLowerCase().includes('printer')
-    );
+
+    // Debug: Log detailed printer info
+    console.log(`Found ${connectedPrinters} USB printer(s) and ${bluetoothPrinters.length} Bluetooth printer(s)`);
+    console.log(`Connected: ${connectedPrinters} USB + ${connectedBluetoothPrinters.length} Bluetooth`);
+    console.log('=== USB Printers ===');
+    printerList.forEach(p => {
+      console.log(`Printer: ${p.name}`);
+      console.log(`  System Name: ${p.systemName}`);
+      console.log(`  Driver: ${p.driverName}`);
+      console.log(`  State: ${p.state}`);
+      console.log(`  Location: ${p.location}`);
+      console.log(`  Is Default: ${p.isDefault}`);
+      console.log('---');
+    });
+    console.log('=== Bluetooth Printers ===');
+    bluetoothPrinters.forEach(p => {
+      console.log(`Printer: ${p.name}`);
+      console.log(`  Address: ${p.address}`);
+      console.log(`  RSSI: ${p.rssi}dBm`);
+      console.log(`  Connectable: ${p.connectable}`);
+      console.log(`  Connected: ${connectedBluetoothPrinters.some(cp => cp.id === p.id)}`);
+      console.log('---');
+    });
     
     // Combine USB and Bluetooth printers into a unified list
     const allPrinters = [
-      ...relevantPrinters.map(p => ({
-        ...p,
+      ...printerList.map(p => ({ 
+        ...p, 
         type: 'usb',
         connectionType: 'USB',
-        isConnected: true
+        isConnected: true // USB printers are always connected if detected
       }))
     ];
+    
+    // Add Bluetooth printers that aren't already in the main printer list
     bluetoothPrinters.forEach(bluetoothPrinter => {
       const alreadyExists = allPrinters.some(p => p.name === bluetoothPrinter.name);
       if (!alreadyExists) {
@@ -138,12 +164,15 @@ app.whenReady().then(() => {
         });
       }
     });
+    
+    // Determine default printer (prefer USB Munbyn, then first available)
     let defaultPrinter = munbynPrinter;
     if (!defaultPrinter && allPrinters.length > 0) {
       defaultPrinter = allPrinters[0];
     }
-    broadcast({
-      type: 'status',
+    
+    broadcast({ 
+      type: 'status', 
       connected,
       printerCount: totalConnectedPrinters,
       usbPrinterCount: connectedPrinters,
@@ -193,8 +222,8 @@ app.whenReady().then(() => {
 
   // USB detection for plug/unplug events
   usbDetect.startMonitoring();
-  usbDetect.on('add', () => { updateStatus(); });
-  usbDetect.on('remove', () => { updateStatus(); });
+  usbDetect.on('add', () => { console.log('USB device added'); updateStatus(); });
+  usbDetect.on('remove', () => { console.log('USB device removed'); updateStatus(); });
 
   // Start server
   server.listen(PORT, () => {
